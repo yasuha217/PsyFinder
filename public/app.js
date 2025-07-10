@@ -1,5 +1,7 @@
 // Global variables
 let eventCardsContainer, searchForm, loadingElement;
+// Use localhost API for development
+const API_BASE_URL = 'http://localhost:8001';
 
 // Global variable to prevent concurrent API calls
 let isLoadingEvents = false;
@@ -42,14 +44,14 @@ async function loadEvents(query = '', location = '', genre = '', forceRefresh = 
         }
         
         console.log(`Loading events with source: ${source}`);
-        const response = await fetch(`/api/events?${params}`);
+        const response = await fetch(`${API_BASE_URL}/events?${params}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        console.log(`Received ${data.events?.length || 0} events from source: ${data.source || 'unknown'}`);
+        console.log(`Received ${data.events?.length || 0} events from source: ${data.source}`);
         
         if (data.success) {
             displayEvents(data.events);
@@ -59,7 +61,7 @@ async function loadEvents(query = '', location = '', genre = '', forceRefresh = 
         }
     } catch (error) {
         console.error('Error loading events:', error);
-        showError(`Network error: ${error.message}. Make sure the API server is running.`);
+        showError(`Network error: ${error.message}. Make sure the FastAPI server is running on ${API_BASE_URL}`);
     } finally {
         isLoadingEvents = false;
         showLoading(false);
@@ -145,8 +147,8 @@ function displayEvents(events) {
     if (eventCardsContainer) {
         eventCardsContainer.style.cssText = `
             display: grid !important;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
-            gap: 2rem !important;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+            gap: 28px !important;
             padding: 32px 12px !important;
             max-width: 1200px !important;
             margin: 0 auto !important;
@@ -197,7 +199,7 @@ function showLoading(show) {
         } else {
             loadingElement.style.display = 'none';
             if (eventCardsContainer) {
-                eventCardsContainer.style.display = 'block';
+                eventCardsContainer.style.display = 'block'; // Changed from 'grid' to 'block'
                 eventCardsContainer.style.visibility = 'visible';
                 eventCardsContainer.style.opacity = '1';
                 console.log('Container shown after loading');
@@ -230,7 +232,7 @@ function showError(message) {
 // Health check function
 async function checkBackendHealth() {
     try {
-        const response = await fetch(`/api/events`);
+        const response = await fetch(`${API_BASE_URL}/health`);
         const data = await response.json();
         console.log('Backend health:', data);
     } catch (error) {
@@ -324,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Handle source change to reload events with debounce
         let sourceChangeTimeout;
-        let lastSource = 'major';
+        let lastSource = 'clubberia'; // Track last source to prevent unnecessary reloads
         const sourceFilter = document.getElementById('source-filter');
         
         if (sourceFilter) {
@@ -360,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Check backend health on startup
         checkBackendHealth();
         
-        // Load initial events
+        // Load initial events (start with major festivals for faster loading)
         console.log('Loading initial events...');
         
         // Prevent infinite loops by adding a flag
@@ -370,8 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Use direct call instead of debounced to avoid timing issues
             setTimeout(() => {
                 console.log('Starting automatic API load...');
-                loadEvents('', '', '', false, 'major');
-            }, 100);
+                loadEvents('', '', '', false, 'clubberia');
+            }, 100); // Small delay to ensure DOM is fully ready
         }
         
     } catch (error) {
